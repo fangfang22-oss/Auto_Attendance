@@ -62,7 +62,7 @@ class DaKa(object):
         return self.sess
 
     def get_info(self, html=None):
-       """Get hitcard info, which is the old info with updated new time."""
+        """Get hitcard info, which is the old info with updated new time."""
         if not html:
             urllib3.disable_warnings()
             res = self.sess.get(self.base_url, verify=False)
