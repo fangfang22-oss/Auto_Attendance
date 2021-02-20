@@ -62,7 +62,7 @@ class DaKa(object):
         return self.sess
 
     def get_info(self, html=None):
-        """Get hitcard info, which is the old info with updated new time."""
+       """Get hitcard info, which is the old info with updated new time."""
         if not html:
             urllib3.disable_warnings()
             res = self.sess.get(self.base_url, verify=False)
@@ -72,8 +72,7 @@ class DaKa(object):
         jsontext = eval(jsontext[jsontext.find("{"):jsontext.rfind(";")].replace(" ", ""))
 
         geo_text = jsontext['geo_api_info']
-        geo_text = geo_text.replace("false", "False").replace("true", "True")
-        geo_obj = eval(geo_text)['addressComponent']
+        geo_obj = json.loads(geo_text)['addressComponent']
         area = geo_obj['province'] + " " + geo_obj['city'] + " " + geo_obj['district']
         name = re.findall(r'realname: "([^\"]+)",', html)[0]
         number = re.findall(r"number: '([^\']+)',", html)[0]
@@ -84,6 +83,8 @@ class DaKa(object):
         new_info['area'] = area
         new_info["date"] = self.get_date()
         new_info["created"] = round(time.time())
+        new_info['city'] = geo_obj['city']
+        new_info['address'] = json.loads(geo_text)['formattedAddress']
         self.info = new_info
         return new_info
 
