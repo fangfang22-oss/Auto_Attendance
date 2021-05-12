@@ -1,65 +1,22 @@
 # -*- coding: utf-8 -*-
+import sys
 import datetime
-import getpass
-import os
-import time
-
 import json
 import re
+import time
+
 import requests
 import urllib3
-import argparse
-from apscheduler.schedulers.blocking import BlockingScheduler
 from halo import Halo
 
 
-class DaKa(object):
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
-        self.login_url = "http://ca.its.csu.edu.cn/Home/Login/215"
-        self.validate_url = "https://wxxy.csu.edu.cn/a_csu/api/sso/validate"
+class DaKa():
+    def __init__(self):
         self.base_url = "https://wxxy.csu.edu.cn/ncov/wap/default/index"
         self.save_url = "https://wxxy.csu.edu.cn/ncov/wap/default/save"
         self.info = None
         self.sess = requests.Session()
-
-    def login(self):
-        """Login to CSU platform and verify"""
-        data1 = {
-            "userName": self.username,
-            "passWord": self.password,
-            "enter": 'true'
-        }
-        res2 = None
-        try:
-            res2 = self.sess.post(url=self.login_url, data=data1)
-        except:
-            print("无法连接信网中心")
-            exit(1)
-        if res2 is None:
-            print("请检查账号密码是否正确")
-            exit(1)
-
-        regex = r'tokenId.*value="(?P<tokenId>\w+)".*account.*value="(?P<account>\w+)".*Thirdsys.*value="(' \
-                r'?P<Thirdsys>\w+)" '
-        data2 = None
-        try:
-            re_result = re.search(regex, res2.text)
-            data2 = {
-                "tokenId": re_result["tokenId"],
-                "account": re_result["account"],
-                "Thirdsys": re_result["Thirdsys"]
-            }
-        except:
-            print("请检查账号密码是否正确")
-            exit(1)
-        try:
-            self.sess.post(self.validate_url, data=data2)
-        except:
-            print("无法通过信网中心认证")
-            exit(1)
-        return self.sess
+        self.sess.cookies.update({'eai-sess': sys.argv[1]})
 
     def get_info(self, html=None):
         """Get hitcard info, which is the old info with updated new time."""
@@ -98,17 +55,13 @@ class DaKa(object):
         return json.loads(res.text)
 
 
-def main(username, password):
+if __name__ == "__main__":
     print("\n[Time] %s" % datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     print("🚌 打卡任务启动")
     spinner = Halo(text='Loading', spinner='dots')
     spinner.start('正在新建打卡实例...')
-    dk = DaKa(username, password)
+    dk = DaKa()
     spinner.succeed('已新建打卡实例')
-
-    spinner.start(text='登录到中南大学信息门户...')
-    dk.login()
-    spinner.succeed('已登录到中南大学信息门户')
 
     spinner.start(text='正在获取个人信息...')
     dk.get_info()
@@ -120,12 +73,3 @@ def main(username, password):
         spinner.stop_and_persist(symbol='🦄 '.encode('utf-8'), text='已为您打卡成功！')
     else:
         spinner.stop_and_persist(symbol='🦄 '.encode('utf-8'), text=res['m'])
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='manual to this script')
-    parser.add_argument('--username', type=str, default=None)
-    parser.add_argument('--password', type=str, default=None)
-    args = parser.parse_args()
-    print("用户信息：", args)
-    main(args.username, args.password)
